@@ -17,7 +17,7 @@ client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
 def get_processed_links():
     if not os.path.exists(DB_FILE): return []
     with open(DB_FILE, "r") as f: 
-        return f.read().splitlines()[-100:]
+        return f.read().splitlines()[-150:]
 
 def save_link(link):
     with open(DB_FILE, "a") as f: f.write(link + "\n")
@@ -43,8 +43,8 @@ def ai_rewrite(title, text):
         response = client.chat.completions.create(
             model="deepseek-chat",
             messages=[
-                {"role": "system", "content": "Ты редактор паблика Магнитогорска. Пиши только о том, что касается города. Кратко, до 300 симв."},
-                {"role": "user", "content": f"Перескажи новость для жителей Магнитогорска (макс 300 знаков). Заголовок жирным. Тема: {title}\nТекст: {text}"}
+                {"role": "system", "content": "Ты редактор Магнитогорска. Пиши кратко, до 300 симв."},
+                {"role": "user", "content": f"Перескажи кратко (до 300 зн). Заголовок жирным. Тема: {title}\nТекст: {text}"}
             ],
             max_tokens=400,
             temperature=0.6
@@ -53,33 +53,24 @@ def ai_rewrite(title, text):
     except: return None
 
 def run():
-    
-    query = '"Магнитогорск"'
-    url = f"https://newsapi.org/v2/everything?q={query}&language=ru&sortBy=publishedAt&pageSize=40&apiKey={NEWS_API_KEY}"
-    
+    query = 'Магнитогорск OR "Челябинская область" OR ММК'
+    url = f"https://newsapi.org/v2/everything?q={query}&language=ru&sortBy=publishedAt&pageSize=50&apiKey={NEWS_API_KEY}"
     try:
         r = requests.get(url, timeout=10)
         articles = r.json().get("articles", [])
         db = get_processed_links()
         posted = 0
-        
         for a in articles:
             if posted >= 2: break
             l = a["url"]
             title = a.get("title", "")
-            
-            content_to_check = (title + (a.get("description") or "")).lower()
-            
-            if l not in db and "магнитогорск" in content_to_check:
+            if l not in db:
                 raw = get_full_text(l)
                 if not raw or len(raw) < 200: continue
-                
                 txt = ai_rewrite(title, raw)
                 if not txt: continue
-                
-                footer = "\n\n[🧲 newsmagni](https://t.me/newsmagni)"
+                footer = "\n\n[🏙 newsmagni](https://t.me/newsmagni)"
                 final_text = smart_trim(txt, 1000 - len(footer)) + footer
-                
                 img = a.get("urlToImage")
                 try:
                     if img: bot.send_photo(CHANNEL_ID, img, caption=final_text, parse_mode='Markdown')
