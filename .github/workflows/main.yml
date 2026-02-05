@@ -9,7 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install
-        run: pip install pyTelegramBotAPI requests google-generativeai
+        run: |
+          pip install --upgrade pip
+          pip install pyTelegramBotAPI requests google-generativeai
       - name: Run
         env:
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
