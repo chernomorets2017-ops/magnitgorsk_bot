@@ -11,16 +11,11 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 def summarize(text):
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    for _ in range(3):
-        try:
-            r = requests.post(API_URL, headers=headers, json={"inputs": text, "parameters": {"do_sample": False}}, timeout=30).json()
-            if isinstance(r, dict) and "estimated_time" in r:
-                time.sleep(r["estimated_time"])
-                continue
-            return r[0]['summary_text']
-        except:
-            time.sleep(5)
-    return None
+    try:
+        r = requests.post(API_URL, headers=headers, json={"inputs": text}, timeout=15).json()
+        return r[0]['summary_text']
+    except:
+        return None
 
 def run():
     url = f"https://newsapi.org/v2/everything?q=Магнитогорск&language=ru&apiKey={NEWS_API_KEY}"
@@ -32,12 +27,12 @@ def run():
     for a in articles:
         if p >= 2: break
         if a["url"] not in done:
-            txt = summarize(f"{a['title']}. {a['description']}")
-            if txt:
-                bot.send_message(CHANNEL_ID, f"<b>{a['title']}</b>\n\n{txt}\n\n🏙 newsmagni", parse_mode='HTML')
-                with open(DB_FILE, 'a') as f: f.write(a["url"] + "\n")
-                p += 1
-                time.sleep(5)
+            res = summarize(f"{a['title']}. {a['description']}")
+            content = res if res else a['description']
+            bot.send_message(CHANNEL_ID, f"<b>{a['title']}</b>\n\n{content}\n\n🏙 newsmagni", parse_mode='HTML')
+            with open(DB_FILE, 'a') as f: f.write(a["url"] + "\n")
+            p += 1
+            time.sleep(5)
 
 if __name__ == "__main__":
     run()
