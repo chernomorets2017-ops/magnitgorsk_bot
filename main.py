@@ -23,7 +23,7 @@ def run():
             if posted >= 2: break
             link = a["url"]
             if link not in done:
-                prompt = f"Сделай краткий новостной пост для Телеграм (заголовок жирным). Добавь подходящие по теме новости эмодзи-стикеры: {a['title']}\n{a['description']}"
+                prompt = f"Сделай краткий новостной пост для Телеграм (заголовок жирным). Добавь подходящие эмодзи: {a['title']}\n{a['description']}"
                 response = model.generate_content(prompt)
                 msg = response.text + f"\n\n[🏙 newsmagni](https://t.me/newsmagni)"
                 if a.get("urlToImage"): bot.send_photo(CHANNEL_ID, a["urlToImage"], caption=msg[:1024], parse_mode='Markdown')
@@ -34,4 +34,3 @@ def run():
     except: pass
 
 if __name__ == "__main__": run()
-
