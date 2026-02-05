@@ -1,11 +1,15 @@
 name: Run News Bot
 on:
+  schedule:
+    - cron: '0 * * * *'
   workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install
+        run: pip install pyTelegramBotAPI requests google-generativeai
       - name: Run
         env:
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
