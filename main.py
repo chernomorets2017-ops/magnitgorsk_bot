@@ -26,15 +26,15 @@ def run():
             if posted >= 2: break
             link = a["url"]
             if link not in done:
-                prompt = f"Сделай краткий новостной пост для Телеграм (заголовок жирным). Добавь подходящие эмодзи: {a['title']}\n{a['description']}"
+                prompt = f"Сделай краткий пост для ТГ. Заголовок выдели тегом <b></b>. Добавь эмодзи. Текст новости: {a['title']}\n{a['description']}"
                 try:
                     response = model.generate_content(prompt)
-                    text = response.text.replace("*", "**")
-                    msg = f"{text}\n\n[🏙 newsmagni](https://t.me/newsmagni)"
-                    if a.get("urlToImage"): bot.send_photo(CHANNEL_ID, a["urlToImage"], caption=msg[:1024], parse_mode='Markdown')
-                    else: bot.send_message(CHANNEL_ID, msg[:4096], parse_mode='Markdown')
+                    clean_text = response.text.replace("**", "<b>").replace("__", "<i>")
+                    msg = f"{clean_text}\n\n<a href='https://t.me/newsmagni'>🏙 newsmagni</a>"
+                    if a.get("urlToImage"): bot.send_photo(CHANNEL_ID, a["urlToImage"], caption=msg[:1024], parse_mode='HTML')
+                    else: bot.send_message(CHANNEL_ID, msg[:4096], parse_mode='HTML')
                 except:
-                    bot.send_message(CHANNEL_ID, f"**{a['title']}**\n\n{a['url']}")
+                    bot.send_message(CHANNEL_ID, f"<b>{a['title']}</b>\n\n{a['url']}", parse_mode='HTML')
                 with open(DB_FILE, 'a') as f: f.write(link + "\n")
                 posted += 1
                 time.sleep(5)
