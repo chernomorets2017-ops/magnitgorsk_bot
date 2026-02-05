@@ -9,7 +9,7 @@ DB_FILE = "magni_links.txt"
 
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -27,7 +27,7 @@ def run():
             link = a["url"]
             if link not in done:
                 try:
-                    res = model.generate_content(f"Напиши краткий пост. Используй эмодзи. Заголовок сделай жирным через теги <b></b>. Текст: {a['title']} {a['description']}")
+                    res = model.generate_content(f"Напиши краткий пост. Используй эмодзи. Заголовок выдели <b></b>. Текст: {a['title']} {a['description']}")
                     txt = res.text.replace("**", "<b>").replace("*", "")
                     msg = f"{txt}\n\n<a href='https://t.me/newsmagni'>🏙 newsmagni</a>"
                     if a.get("urlToImage"): bot.send_photo(CHANNEL_ID, a["urlToImage"], caption=msg[:1024], parse_mode='HTML')
