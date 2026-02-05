@@ -13,7 +13,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 def ask_groq(title, description):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
-    prompt = f"Сделай краткий пересказ новости строго до 300 символов. Придумай один адекватный заголовок. Только ключевые моменты. Текст: {title}. {description}"
+    prompt = f"Напиши один четкий заголовок и краткий пересказ новости. Суммарно строго до 300 символов. Только факты. Текст: {title}. {description}"
     data = {
         "model": "llama3-8b-8192",
         "messages": [{"role": "user", "content": prompt}],
