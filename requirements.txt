@@ -1,5 +1,4 @@
 pyTelegramBotAPI
 requests
-beautifulsoup4
-openai
-
+g4f
+curl_cffi
