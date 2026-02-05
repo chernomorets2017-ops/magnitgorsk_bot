@@ -3,7 +3,7 @@ import os, telebot, requests, time
 BOT_TOKEN = "8217356191:AAFvVPFTwbACc6mZ7Y4HWwZeDVBn3V5rmLs"
 CHANNEL_ID = "@newsmagni"
 CITY_QUERY = "Магнитогорск"
-FOOTER_TAG = "newsmagni"
+CHANNEL_LINK = "https://t.me/newsmagni"
 NEWS_API_KEY = "1b34822481654c9aa27b42d36bae1397"
 GROQ_KEY = os.getenv("GROQ_KEY")
 DB_FILE = "magni_links.txt"
@@ -13,7 +13,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 def ask_groq(title, description):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
-    prompt = f"Перескажи новость кратко и по сути на русском языке.\nЗаголовок: {title}\nТекст: {description}"
+    prompt = f"Сделай краткий пересказ новости строго до 300 символов. Придумай один адекватный заголовок. Только ключевые моменты. Текст: {title}. {description}"
     data = {
         "model": "llama3-8b-8192",
         "messages": [{"role": "user", "content": prompt}],
@@ -36,14 +36,14 @@ def run():
         if p >= 2: break
         if a["url"] not in done and a["description"]:
             summary = ask_groq(a['title'], a['description'])
-            content = summary if summary else a['description']
-            msg = f"<b>{a['title']}</b>\n\n{content}\n\n<a href='{a['url']}'>🔗 Читать полностью</a>\n\n🏙 {FOOTER_TAG}"
-            try:
-                bot.send_message(CHANNEL_ID, msg, parse_mode='HTML')
-                with open(DB_FILE, 'a') as f: f.write(a["url"] + "\n")
-                p += 1
-                time.sleep(5)
-            except: pass
+            if summary:
+                msg = f"{summary}\n\n🏙 <a href='{CHANNEL_LINK}'>Магнитогорск</a>"
+                try:
+                    bot.send_message(CHANNEL_ID, msg, parse_mode='HTML')
+                    with open(DB_FILE, 'a') as f: f.write(a["url"] + "\n")
+                    p += 1
+                    time.sleep(5)
+                except: pass
 
 if __name__ == "__main__":
     run()
