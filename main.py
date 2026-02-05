@@ -4,7 +4,7 @@ import google.generativeai as genai
 BOT_TOKEN = "8217356191:AAFvVPFTwbACc6mZ7Y4HWwZeDVBn3V5rmLs"
 CHANNEL_ID = "@newsmagni"
 NEWS_API_KEY = "1b34822481654c9aa27b42d36bae1397"
-GEMINI_KEY = "AIzaSyAu666zkt38354ADCo2WJmOdizdQa0OQmY"
+GEMINI_KEY = os.getenv("GEMINI_KEY")
 DB_FILE = "magni_links.txt"
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -18,7 +18,6 @@ def run():
         articles = r.get("articles", [])
         if not os.path.exists(DB_FILE): open(DB_FILE, 'w').close()
         with open(DB_FILE, 'r') as f: done = f.read().splitlines()
-        
         posted = 0
         for a in articles:
             if posted >= 2: break
