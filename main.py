@@ -1,60 +1,100 @@
-import os, telebot, requests, time
+import requests
 from bs4 import BeautifulSoup
+import feedparser
+import json
+import hashlib
+import time
+from telegram import Bot
+from googletrans import Translator
 
 BOT_TOKEN = "8217356191:AAFvVPFTwbACc6mZ7Y4HWwZeDVBn3V5rmLs"
-CHANNEL_ID = "@newsmagni"
-CITY_QUERY = "Магнитогорск"
-CHANNEL_LINK = "https://t.me/newsmagni"
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-DB_FILE = "magni_links.txt"
+CHANNEL = "@newsmagni"
+SIGN = '<a href="https://t.me/newsmagni">.магнитогорск.news</a>'
 
-bot = telebot.TeleBot(BOT_TOKEN)
+RSS = "https://www.verstov.info/rss.xml"
 
-def get_full_text(url):
+bot = Bot(BOT_TOKEN)
+tr = Translator()
+
+def load_db():
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        r = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.content, 'html.parser')
-        for s in soup(['script', 'style', 'header', 'footer', 'nav', 'aside']): s.decompose()
-        ps = [p.get_text().strip() for p in soup.find_all('p') if len(p.get_text()) > 40]
-        return " ".join(ps) if ps else None
-    except: return None
+        return set(json.load(open("db.json")))
+    except:
+        return set()
 
-def smart_trim(text, limit):
-    if len(text) <= limit: return text
-    trimmed = text[:limit]
-    last_dot = trimmed.rfind('.')
-    if last_dot != -1 and last_dot > (limit // 2):
-        return trimmed[:last_dot + 1]
-    return trimmed + "..."
+def save_db(db):
+    json.dump(list(db), open("db.json", "w"))
 
-def run():
-    url = f"https://newsapi.org/v2/everything?q={CITY_QUERY}&sortBy=publishedAt&pageSize=10&language=ru&apiKey={NEWS_API_KEY}"
-    r = requests.get(url).json()
-    articles = r.get("articles", [])
-    if not os.path.exists(DB_FILE): open(DB_FILE, 'w').close()
-    with open(DB_FILE, 'r', encoding='utf-8') as f: done = f.read().splitlines()
-    p = 0
-    for a in articles:
-        if p >= 2: break
-        if a["url"] not in done and a["title"] not in done:
-            full_text = get_full_text(a["url"])
-            source = full_text if full_text else (a.get('description') or a['title'])
-            clean_title = a['title'].strip()
-            content = smart_trim(source, 800)
-            footer = f"\n\n🏙 <a href='{CHANNEL_LINK}'>Магнитогорск</a>"
-            msg = f"🔔 <b>{clean_title.upper()}</b>\n\n{content}{footer}"
-            try:
-                if a.get("urlToImage"):
-                    bot.send_photo(CHANNEL_ID, a["urlToImage"], caption=msg, parse_mode='HTML')
-                else:
-                    bot.send_message(CHANNEL_ID, msg, parse_mode='HTML', disable_web_page_preview=True)
-                with open(DB_FILE, 'a', encoding='utf-8') as f:
-                    f.write(a["url"] + "\n")
-                    f.write(a["title"] + "\n")
-                p += 1
-                time.sleep(5)
-            except: continue
+def get_article(url):
+    try:
+        r = requests.get(url, timeout=10)
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        text = ""
+        article = soup.find("div", class_="fullstory")
+        if article:
+            text = " ".join(p.text for p in article.find_all("p"))
+
+        img = ""
+        og = soup.find("meta", property="og:image")
+        if og:
+            img = og["content"]
+
+        return text[:2500], img
+    except:
+        return "", ""
+
+def get_news():
+    feed = feedparser.parse(RSS)
+    news = []
+
+    for e in feed.entries[:10]:
+        text, img = get_article(e.link)
+
+        if len(text) < 300:
+            continue
+
+        news.append({
+            "title": e.title,
+            "text": text,
+            "img": img
+        })
+    return news
+
+def make_hash(title):
+    return hashlib.md5(title.encode()).hexdigest()
+
+# ===== ОСНОВНОЙ БОТ =====
+def main():
+    db = load_db()
+    news = get_news()
+
+    for n in news:
+        h = make_hash(n["title"])
+        if h in db:
+            continue
+
+        title = tr.translate(n["title"], dest="ru").text
+        text = tr.translate(n["text"], dest="ru").text[:1200]
+
+        caption = f"""🏙 <b>Магнитогорск</b>
+
+<b>{title}</b>
+
+{text}
+
+{SIGN}
+"""
+
+        if n["img"]:
+            bot.send_photo(CHANNEL, n["img"], caption=caption, parse_mode="HTML")
+        else:
+            bot.send_message(CHANNEL, caption, parse_mode="HTML")
+
+        db.add(h)
+        time.sleep(10)
+
+    save_db(db)
 
 if __name__ == "__main__":
-    run()
+    main()
